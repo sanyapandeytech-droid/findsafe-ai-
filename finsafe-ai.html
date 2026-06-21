@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinSafe AI — Scam Message Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1320;
+    --surface:#121D30;
+    --surface-2:#1A2740;
+    --border:#28395A;
+    --text:#EAEFF5;
+    --text-muted:#8C9AB3;
+    --safe:#2FD9A8;
+    --safe-dim:#173C34;
+    --caution:#FFB648;
+    --caution-dim:#3D2E12;
+    --danger:#FF5C5C;
+    --danger-dim:#3A1A1A;
+    --accent:#5B8DEF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(91,141,239,0.16), transparent 60%),
+      var(--bg);
+    background-image:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(91,141,239,0.16), transparent 60%),
+      radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px),
+      none;
+    background-size: auto, 26px 26px, auto;
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:48px 20px 64px;
+  }
+  .wrap{
+    width:100%;
+    max-width:640px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.18em;
+    color:var(--accent);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 4px rgba(91,141,239,0.18);
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:34px;
+    font-weight:600;
+    line-height:1.2;
+    margin:0 0 12px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--text-muted);
+    font-size:15.5px;
+    line-height:1.55;
+    margin:0 0 30px;
+    max-width:520px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+  }
+  textarea{
+    width:100%;
+    min-height:120px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:14px;
+    resize:vertical;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  textarea:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(91,141,239,0.18);
+  }
+  textarea::placeholder{color:#5C6A85;}
+
+  .scanline{
+    position:absolute;
+    left:0; right:0; top:0;
+    height:2px;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity:0;
+    pointer-events:none;
+  }
+  .scanline.active{
+    animation: sweep 1s ease-in-out;
+  }
+  @keyframes sweep{
+    0%{ top:0; opacity:0; }
+    8%{ opacity:1; }
+    92%{ opacity:1; }
+    100%{ top:100%; opacity:0; }
+  }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:14px;
+  }
+  .chips-label{
+    font-size:12.5px;
+    color:var(--text-muted);
+    width:100%;
+    margin-bottom:2px;
+  }
+  .chip{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--text-muted);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:7px 14px;
+    cursor:pointer;
+    transition:transform .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .chip:hover{ transform:translateY(-1px); border-color:var(--accent); color:var(--text); }
+  .chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .actions{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:18px;
+  }
+  .scan-btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    color:#06121C;
+    background:var(--accent);
+    border:none;
+    border-radius:10px;
+    padding:12px 22px;
+    cursor:pointer;
+    transition:filter .12s ease, transform .08s ease;
+  }
+  .scan-btn:hover{ filter:brightness(1.08); }
+  .scan-btn:active{ transform:scale(0.98); }
+  .scan-btn:disabled{ opacity:0.7; cursor:default; }
+  .scan-btn:focus-visible{ outline:2px solid var(--text); outline-offset:3px; }
+
+  .hint{
+    font-size:12.5px;
+    color:var(--text-muted);
+  }
+
+  .result{
+    margin-top:22px;
+    border-top:1px solid var(--border);
+    padding-top:22px;
+    display:none;
+  }
+  .result.show{
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+    animation: rise .35s ease both;
+  }
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .gauge-wrap{
+    flex:0 0 auto;
+    text-align:center;
+  }
+  .gauge-score{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:22px;
+    font-weight:600;
+  }
+  .gauge-of{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-muted);
+  }
+
+  .verdict{ flex:1; min-width:0; }
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    font-weight:600;
+    padding:5px 10px;
+    border-radius:6px;
+    margin-bottom:10px;
+  }
+  .badge.safe{ color:var(--safe); background:var(--safe-dim); }
+  .badge.caution{ color:var(--caution); background:var(--caution-dim); }
+  .badge.danger{ color:var(--danger); background:var(--danger-dim); }
+
+  .verdict p{
+    margin:0 0 12px;
+    font-size:14.5px;
+    line-height:1.55;
+    color:var(--text);
+  }
+  .verdict p.tip{ color:var(--text-muted); font-size:13.5px; margin-bottom:0; }
+
+  .flags{
+    list-style:none;
+    margin:0 0 14px;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+  .flags li{
+    font-size:13.5px;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    color:var(--text);
+  }
+  .flags li::before{
+    content:"▲";
+    font-size:9px;
+    margin-top:4px;
+    color:inherit;
+  }
+  .flags.safe-list li::before{ content:"✓"; font-size:11px; }
+
+  footer{
+    margin-top:30px;
+    text-align:center;
+    color:var(--text-muted);
+    font-size:12.5px;
+  }
+
+  @media (max-width:480px){
+    h1{ font-size:27px; }
+    .result.show{ flex-direction:column; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .scanline.active{ animation:none; }
+    .result.show{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Fraud Scanner</div>
+  <h1>Is this message trying to scam you?</h1>
+  <p class="sub">Paste any SMS, WhatsApp message, or payment request below. FinSafe checks it against common fraud patterns and gives you an instant risk score — no account needed.</p>
+
+  <div class="card">
+    <div class="scanline" id="scanline"></div>
+    <textarea id="msgInput" placeholder="Paste the message here… e.g. &quot;Your account will be blocked. Click here to verify KYC.&quot;"></textarea>
+
+    <div class="chips">
+      <div class="chips-label">Try an example:</div>
+      <button class="chip" data-example="bank">Fake bank SMS</button>
+      <button class="chip" data-example="lottery">Lottery scam</button>
+      <button class="chip" data-example="safe">Genuine bill reminder</button>
+    </div>
+
+    <div class="actions">
+      <button class="scan-btn" id="scanBtn">Scan message</button>
+      <span class="hint">Works fully offline</span>
+    </div>
+
+    <div class="result" id="result">
+      <div class="gauge-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface-2)" stroke-width="10"/>
+          <circle id="gaugeArc" cx="60" cy="60" r="50" fill="none" stroke="var(--safe)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16"
+                  transform="rotate(-90 60 60)"/>
+          <text id="gaugeNum" x="60" y="64" text-anchor="middle" class="gauge-score" fill="currentColor">0</text>
+        </svg>
+        <div class="gauge-of">RISK SCORE</div>
+      </div>
+      <div class="verdict">
+        <div class="badge" id="badge">SAFE</div>
+        <p id="summary">No red flags detected.</p>
+        <ul class="flags" id="flagsList"></ul>
+        <p class="tip" id="tip"></p>
+      </div>
+    </div>
+  </div>
+
+  <footer>Built for Global Buildathon '26 — FinTech × Cybersecurity</footer>
+</div>
+
+<script>
+const examples = {
+  bank: "Dear customer, your SBI account will be BLOCKED in 24 hours due to pending KYC. Update immediately by clicking http://bit.ly/sbi-kyc2 or share your OTP to verify.",
+  lottery: "Congratulations! You have WON Rs 25,00,000 in the KBC Lucky Draw. To claim your prize, pay Rs 4,999 processing fee and share your account PIN within 1 hour.",
+  safe: "Hi, this is a reminder that your electricity bill payment of Rs 1,240 is due on 24th June. You can pay via the official app or website at your convenience."
+};
+
+const flagDefs = [
+  { pattern: /otp/i, weight: 25, label: "Asks you to share an OTP" },
+  { pattern: /\b(pin|cvv|password|mpin)\b/i, weight: 30, label: "Asks for your PIN, CVV, or password" },
+  { pattern: /(block|suspend|deactivat)\w*.{0,25}(account|card|upi|sim)/i, weight: 20, label: "Threatens to block your account" },
+  { pattern: /kyc/i, weight: 15, label: "Urgent KYC update request" },
+  { pattern: /(click|tap)\w*.{0,15}(link|here)/i, weight: 15, label: "Pushes you to click a link" },
+  { pattern: /(bit\.ly|tinyurl|t\.co|short\.link|rb\.gy|cutt\.ly)/i, weight: 20, label: "Uses a shortened, untraceable link" },
+  { pattern: /(won|winner|lottery|lucky draw|prize)/i, weight: 20, label: "Claims you've won a prize" },
+  { pattern: /(refund|cashback)\w*.{0,20}(claim|process|pending)/i, weight: 15, label: "Unexpected refund or cashback claim" },
+  { pattern: /(urgent|immediately|within \d+ ?(hours|hrs|minutes)|act now|last chance)/i, weight: 15, label: "Creates false urgency" },
+  { pattern: /(pay|transfer|send money)\w*.{0,20}(verify|confirm|secure|fee|processing)/i, weight: 20, label: "Asks you to pay to 'verify' or process something" },
+  { pattern: /(rbi|income tax|government)\w*.{0,20}(notice|fine|penalty|legal)/i, weight: 20, label: "Impersonates a government or RBI notice" },
+  { pattern: /(call|contact)\w*.{0,15}(this number|helpline|immediately)/i, weight: 10, label: "Pushes you to call an unknown number" },
+  { pattern: /guaranteed\w*.{0,15}(return|profit|income)/i, weight: 20, label: "Promises guaranteed investment returns" }
+];
+
+const msgInput = document.getElementById('msgInput');
+const scanBtn = document.getElementById('scanBtn');
+const scanline = document.getElementById('scanline');
+const result = document.getElementById('result');
+const badge = document.getElementById('badge');
+const summary = document.getElementById('summary');
+const flagsList = document.getElementById('flagsList');
+const tip = document.getElementById('tip');
+const gaugeArc = document.getElementById('gaugeArc');
+const gaugeNum = document.getElementById('gaugeNum');
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    msgInput.value = examples[chip.dataset.example];
+    msgInput.focus();
+  });
+});
+
+function analyze(text){
+  let score = 0;
+  const matched = [];
+  flagDefs.forEach(f => {
+    if(f.pattern.test(text)){
+      score += f.weight;
+      matched.push(f.label);
+    }
+  });
+  score = Math.min(100, score);
+  return { score, matched };
+}
+
+function classify(score){
+  if(score >= 60) return 'danger';
+  if(score >= 20) return 'caution';
+  return 'safe';
+}
+
+const copy = {
+  safe: {
+    label: "SAFE",
+    summary: "No common fraud patterns were found in this message.",
+    tip: "Still, never share your OTP, PIN, or CVV with anyone — even if a message looks genuine."
+  },
+  caution: {
+    label: "SUSPICIOUS",
+    summary: "This message shows some signs commonly seen in scams.",
+    tip: "Don't click any links or share codes from this message. Verify directly with your bank's official app or number."
+  },
+  danger: {
+    label: "HIGH RISK",
+    summary: "This message shows strong signs of fraud.",
+    tip: "Do not click links, share OTP/PIN, or make any payment. Report and block the sender."
+  }
+};
+
+const colorVar = { safe: 'var(--safe)', caution: 'var(--caution)', danger: 'var(--danger)' };
+
+function runScan(){
+  const text = msgInput.value.trim();
+  if(!text){
+    msgInput.focus();
+    msgInput.style.borderColor = 'var(--danger)';
+    setTimeout(()=> msgInput.style.borderColor = 'var(--border)', 600);
+    return;
+  }
+
+  scanBtn.disabled = true;
+  scanBtn.textContent = 'Scanning…';
+  scanline.classList.remove('active');
+  void scanline.offsetWidth;
+  scanline.classList.add('active');
+
+  setTimeout(() => {
+    const { score, matched } = analyze(text);
+    const tier = classify(score);
+    const c = copy[tier];
+
+    badge.className = 'badge ' + tier;
+    badge.textContent = c.label;
+    summary.textContent = c.summary;
+    tip.textContent = c.tip;
+
+    flagsList.innerHTML = '';
+    flagsList.className = 'flags' + (matched.length === 0 ? ' safe-list' : '');
+    if(matched.length === 0){
+      const li = document.createElement('li');
+      li.textContent = 'No red flags found in this message.';
+      flagsList.appendChild(li);
+    } else {
+      matched.forEach(label => {
+        const li = document.createElement('li');
+        li.textContent = label;
+        flagsList.appendChild(li);
+      });
+    }
+
+    const circumference = 314.16;
+    const offset = circumference - (score/100)*circumference;
+    gaugeArc.style.stroke = colorVar[tier];
+    gaugeArc.style.transition = 'stroke-dashoffset 0.7s ease, stroke 0.3s ease';
+    gaugeArc.setAttribute('stroke-dashoffset', offset);
+    gaugeNum.style.fill = colorVar[tier];
+
+    let current = 0;
+    const target = score;
+    const step = Math.max(1, Math.round(target/24));
+    clearInterval(window.__finsafeCount);
+    window.__finsafeCount = setInterval(() => {
+      current += step;
+      if(current >= target){ current = target; clearInterval(window.__finsafeCount); }
+      gaugeNum.textContent = current;
+    }, 16);
+
+    result.classList.add('show');
+    scanBtn.disabled = false;
+    scanBtn.textContent = 'Scan message';
+  }, 950);
+}
+
+scanBtn.addEventListener('click', runScan);
+msgInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runScan();
+});
+</script>
+</body>
+</html>
